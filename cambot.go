@@ -1,15 +1,16 @@
 package main
 
 import (
-	"github.com/NicoNex/echotron/v3"
+	"fmt"
 	"os/exec"
 	"time"
 	"os"
 	"log"
 	"strconv"
-	"strings"
 
 	_"embed"
+
+	"github.com/NicoNex/echotron/v3"
 )
 
 type bot struct {
@@ -52,27 +53,26 @@ func (b *bot) Update(update *echotron.Update) {
 	if strconv.Itoa(int(b.chatID)) != admin {
 		b.SendMessage("📷", b.chatID, nil)
 	} else {
-		msg:=strings.Split(update.Message.Text, " ")
-		command:=msg[0]
-		params:="-o"
-		if len(msg) > 1 {
-			params+=" "+msg[1]
-		}
-		if command == "/start" {
+		msg := update.Message.Text
+		if msg == "/start" {
 		        b.SendMessage("Ready to take a shot!", b.chatID, nil)
-		} else if update.Message.Text == "/shot" {
+		} else if msg == "/shot" {
 			b.SendMessage("Taking a shot", b.chatID, nil)
 			date := time.Now().Unix()
 			strdate := strconv.FormatInt(date, 10)
 			name := "pic" + strdate + ".jpg"
-			_, err := exec.Command("libcamera-still", "-n", params,  path + name).Output()
-			if err == nil {
-				b.SendDocument(echotron.NewInputFilePath(path + name), b.chatID, nil)
-			} else {
+			_, err := exec.Command("libcamera-still", "--immediate", "1", "--nopreview", "1", "--output",  path + name).Output()
+			
+			if err != nil {
+				b.SendMessage(fmt.Sprintf("%s", err), b.chatID, nil)
 				log.Fatal(err)
-				b.SendMessage("error", b.chatID, nil)
 			}
-		}	
+
+			b.SendMessage("Sending image", b.chatID, nil)
+			b.SendDocument(echotron.NewInputFilePath(path + name), b.chatID, nil)
+		} else {
+			b.SendMessage("👀", b.chatID, nil)
+		}
 	}
 }
 
